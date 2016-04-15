@@ -19469,15 +19469,15 @@ var reset = function reset(_ref) {
   var height = _ref.height;
   var mines = _ref.mines;
 
-  var grid = Array.from({ length: height }, function () {
-    return Array.from({ length: width });
+  var grid = Array.from({ length: width }, function () {
+    return Array.from({ length: height });
   });
   var left = mines;
   while (left) {
     var x = randomInt(width),
         y = randomInt(height);
-    if (!grid[y][x]) {
-      grid[y][x] = MINE;
+    if (!grid[x][y]) {
+      grid[x][y] = MINE;
       left--;
     }
   }
@@ -19487,14 +19487,27 @@ var reset = function reset(_ref) {
 var Game = function (_Component) {
   _inherits(Game, _Component);
 
+  _createClass(Game, [{
+    key: 'forSurroundingSquares',
+    value: function forSurroundingSquares(x, y, func) {
+      var _props = this.props;
+      var width = _props.width;
+      var height = _props.height;
+
+      for (var i = Math.max(x - 1, 0); i < Math.min(x + 2, width); ++i) {
+        for (var j = Math.max(y - 1, 0); j < Math.min(y + 2, height); ++j) {
+          if (i !== x || j !== y) {
+            func(i, j);
+          }
+        }
+      }
+    }
+  }]);
+
   function Game(props) {
     _classCallCheck(this, Game);
 
     var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Game).call(this, props));
-
-    var width = props.width;
-    var height = props.height;
-    var mines = props.mines;
 
     _this.state = {
       grid: reset(props)
@@ -19506,7 +19519,7 @@ var Game = function (_Component) {
   _createClass(Game, [{
     key: 'squareColor',
     value: function squareColor(x, y) {
-      switch (this.state.grid[y][x]) {
+      switch (this.state.grid[x][y]) {
         case FLAG:
         case FLAGMINE:
           return 'blue';
@@ -19520,24 +19533,20 @@ var Game = function (_Component) {
   }, {
     key: 'checkSquare',
     value: function checkSquare(x, y) {
-      var _props = this.props;
-      var width = _props.width;
-      var height = _props.height;
+      var grid = this.state.grid;
 
       var num = 0;
-      for (var i = Math.max(y - 1, 0); i < Math.min(y + 2, height); ++i) {
-        for (var j = Math.max(x - 1, 0); j < Math.min(x + 2, width); ++j) {
-          if (this.state.grid[i][j] === MINE || this.state.grid[i][j] === FLAGMINE) {
-            num++;
-          }
+      this.forSurroundingSquares(x, y, function (i, j) {
+        if (grid[i][j] === MINE || grid[i][j] === FLAGMINE) {
+          num++;
         }
-      }
+      });
       return num;
     }
   }, {
     key: 'squareText',
     value: function squareText(x, y) {
-      if (this.state.grid[y][x] === TURNED) {
+      if (this.state.grid[x][y] === TURNED) {
         var num = this.checkSquare(x, y);
         if (num) {
           return num.toString();
@@ -19547,48 +19556,39 @@ var Game = function (_Component) {
   }, {
     key: 'flipSquare',
     value: function flipSquare(x, y) {
-      if (!this.state.grid[y][x]) {
-        var _props2 = this.props;
-        var width = _props2.width;
-        var height = _props2.height;
+      var _this2 = this;
 
-        this.state.grid[y][x] = TURNED;
-        this.flipped++;
+      var num = 0;
+      if (!this.state.grid[x][y]) {
+        this.state.grid[x][y] = TURNED;
+        num++;
         if (!this.checkSquare(x, y)) {
-          if (y) {
-            this.flipSquare(x, y - 1);
-          }
-          if (x) {
-            this.flipSquare(x - 1, y);
-          }
-          if (y < height - 1) {
-            this.flipSquare(x, y + 1);
-          }
-          if (x < width - 1) {
-            this.flipSquare(x + 1, y);
-          }
+          this.forSurroundingSquares(x, y, function (i, j) {
+            return num += _this2.flipSquare(i, j);
+          });
         }
       }
+      return num;
     }
   }, {
     key: 'squareClicked',
     value: function squareClicked(x, y, isRight) {
       if (isRight) {
-        switch (this.state.grid[y][x]) {
+        switch (this.state.grid[x][y]) {
           case TURNED:
             return;
           case FLAG:
           case FLAGMINE:
-            this.state.grid[y][x] = this.state.grid[y][x] - 2;
+            this.state.grid[x][y] = this.state.grid[x][y] - 2;
             break;
           case MINE:
           default:
-            this.state.grid[y][x] = (this.state.grid[y][x] || 0) + 2;
+            this.state.grid[x][y] = (this.state.grid[x][y] || 0) + 2;
             break;
         }
         this.setState(this.state);
       } else {
-        switch (this.state.grid[y][x]) {
+        switch (this.state.grid[x][y]) {
           case MINE:
             console.log('Mine at ' + x + ', ' + y);
             this.setState({
@@ -19596,7 +19596,7 @@ var Game = function (_Component) {
             });
             break;
           default:
-            this.flipSquare(x, y);
+            this.flipped += this.flipSquare(x, y);
             if (this.props.width * this.props.height - this.flipped === this.props.mines) {
               alert('you won!!');
             }
@@ -19608,12 +19608,12 @@ var Game = function (_Component) {
   }, {
     key: 'render',
     value: function render() {
-      var _this2 = this;
+      var _this3 = this;
 
-      var _props3 = this.props;
-      var width = _props3.width;
-      var height = _props3.height;
-      var size = _props3.size;
+      var _props2 = this.props;
+      var width = _props2.width;
+      var height = _props2.height;
+      var size = _props2.size;
 
       return _react2.default.createElement(
         'div',
@@ -19623,13 +19623,13 @@ var Game = function (_Component) {
           height: height,
           size: size,
           squareColor: function squareColor() {
-            return _this2.squareColor.apply(_this2, arguments);
+            return _this3.squareColor.apply(_this3, arguments);
           },
           squareText: function squareText() {
-            return _this2.squareText.apply(_this2, arguments);
+            return _this3.squareText.apply(_this3, arguments);
           },
           onSquareClick: function onSquareClick() {
-            return _this2.squareClicked.apply(_this2, arguments);
+            return _this3.squareClicked.apply(_this3, arguments);
           } })
       );
     }
@@ -19689,11 +19689,11 @@ var Grid = function (_Component) {
         'div',
         null,
         Array.from({
-          length: height
-        }, function (a, y) {
+          length: width
+        }, function (a, x) {
           return Array.from({
-            length: width
-          }, function (b, x) {
+            length: height
+          }, function (b, y) {
             return _react2.default.createElement(
               _square2.default,
               {

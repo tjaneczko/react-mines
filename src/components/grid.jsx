@@ -7,10 +7,10 @@ class Grid extends Component {
     return (
       <div>
         {Array.from({
-          length: height
-        }, (a, y) => Array.from({
           length: width
-        }, (b, x) => (
+        }, (a, x) => Array.from({
+          length: height
+        }, (b, y) => (
           <Square
             x={x * size}
             y={y * size}
