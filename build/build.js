@@ -19487,12 +19487,23 @@ var reset = function reset(_ref) {
 var Game = function (_Component) {
   _inherits(Game, _Component);
 
-  _createClass(Game, [{
-    key: 'forSurroundingSquares',
-    value: function forSurroundingSquares(x, y, func) {
-      var _props = this.props;
-      var width = _props.width;
-      var height = _props.height;
+  function Game() {
+    var _Object$getPrototypeO;
+
+    var _temp, _this, _ret;
+
+    _classCallCheck(this, Game);
+
+    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    return _ret = (_temp = (_this = _possibleConstructorReturn(this, (_Object$getPrototypeO = Object.getPrototypeOf(Game)).call.apply(_Object$getPrototypeO, [this].concat(args))), _this), _this.state = {
+      grid: reset(_this.props)
+    }, _this.forSurroundingSquares = function (x, y, func) {
+      var _this$props = _this.props;
+      var width = _this$props.width;
+      var height = _this$props.height;
 
       for (var i = Math.max(x - 1, 0); i < Math.min(x + 2, width); ++i) {
         for (var j = Math.max(y - 1, 0); j < Math.min(y + 2, height); ++j) {
@@ -19501,25 +19512,8 @@ var Game = function (_Component) {
           }
         }
       }
-    }
-  }]);
-
-  function Game(props) {
-    _classCallCheck(this, Game);
-
-    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Game).call(this, props));
-
-    _this.state = {
-      grid: reset(props)
-    };
-    _this.flipped = 0;
-    return _this;
-  }
-
-  _createClass(Game, [{
-    key: 'squareColor',
-    value: function squareColor(x, y) {
-      switch (this.state.grid[x][y]) {
+    }, _this.squareColor = function (x, y) {
+      switch (_this.state.grid[x][y]) {
         case FLAG:
         case FLAGMINE:
           return 'blue';
@@ -19529,91 +19523,77 @@ var Game = function (_Component) {
         default:
           return '#eee';
       }
-    }
-  }, {
-    key: 'checkSquare',
-    value: function checkSquare(x, y) {
-      var grid = this.state.grid;
+    }, _this.squareText = function (x, y) {
+      if (_this.state.grid[x][y] === TURNED) {
+        var grid = _this.state.grid;
 
-      var num = 0;
-      this.forSurroundingSquares(x, y, function (i, j) {
-        if (grid[i][j] === MINE || grid[i][j] === FLAGMINE) {
-          num++;
-        }
-      });
-      return num;
-    }
-  }, {
-    key: 'squareText',
-    value: function squareText(x, y) {
-      if (this.state.grid[x][y] === TURNED) {
-        var num = this.checkSquare(x, y);
+        var num = 0;
+        _this.forSurroundingSquares(x, y, function (i, j) {
+          if (grid[i][j] === MINE || grid[i][j] === FLAGMINE) {
+            num++;
+          }
+        });
         if (num) {
           return num.toString();
         }
       }
-    }
-  }, {
-    key: 'flipSquare',
-    value: function flipSquare(x, y) {
-      var _this2 = this;
+    }, _this.checkSquare = function (x, y) {
+      var grid = _this.state.grid;
 
       var num = 0;
-      if (!this.state.grid[x][y]) {
-        this.state.grid[x][y] = TURNED;
-        num++;
-        if (!this.checkSquare(x, y)) {
-          this.forSurroundingSquares(x, y, function (i, j) {
-            return num += _this2.flipSquare(i, j);
-          });
+      _this.forSurroundingSquares(x, y, function (i, j) {
+        if (grid[i][j] === MINE) {
+          num++;
+        } else if (grid[i][j] === FLAG) {
+          num--;
         }
-      }
+      });
       return num;
-    }
-  }, {
-    key: 'squareClicked',
-    value: function squareClicked(x, y, isRight) {
-      if (isRight) {
-        switch (this.state.grid[x][y]) {
-          case TURNED:
-            return;
-          case FLAG:
-          case FLAGMINE:
-            this.state.grid[x][y] = this.state.grid[x][y] - 2;
-            break;
-          case MINE:
-          default:
-            this.state.grid[x][y] = (this.state.grid[x][y] || 0) + 2;
-            break;
-        }
-        this.setState(this.state);
-      } else {
-        switch (this.state.grid[x][y]) {
-          case MINE:
-            console.log('Mine at ' + x + ', ' + y);
-            this.setState({
-              grid: reset(this.props)
+    }, _this.flipSquare = function (x, y) {
+      switch (_this.state.grid[x][y]) {
+        case MINE:
+          console.log('Mine at ' + x + ', ' + y);
+          return {
+            grid: reset(_this.props)
+          };
+        case FLAG:
+        case FLAGMINE:
+          break;
+        default:
+          _this.state.grid[x][y] = TURNED;
+          if (!_this.checkSquare(x, y)) {
+            _this.forSurroundingSquares(x, y, function (i, j) {
+              return (!_this.state.grid[i][j] || _this.state.grid[i][j] <= MINE) && _this.flipSquare(i, j);
             });
-            break;
-          default:
-            this.flipped += this.flipSquare(x, y);
-            if (this.props.width * this.props.height - this.flipped === this.props.mines) {
-              alert('you won!!');
-            }
-            this.setState(this.state);
-            break;
-        }
+          }
+          return _this.state;
       }
-    }
-  }, {
+    }, _this.squareClicked = function (x, y) {
+      _this.setState(_this.flipSquare(x, y));
+    }, _this.squareRightClicked = function (x, y) {
+      switch (_this.state.grid[x][y]) {
+        case TURNED:
+          return;
+        case FLAG:
+        case FLAGMINE:
+          _this.state.grid[x][y] = _this.state.grid[x][y] - 2;
+          break;
+        case MINE:
+        default:
+          _this.state.grid[x][y] = (_this.state.grid[x][y] || 0) + 2;
+          break;
+      }
+      _this.setState(_this.state);
+    }, _temp), _possibleConstructorReturn(_this, _ret);
+  }
+
+  _createClass(Game, [{
     key: 'render',
     value: function render() {
-      var _this3 = this;
-
-      var _props2 = this.props;
-      var width = _props2.width;
-      var height = _props2.height;
-      var size = _props2.size;
+      var _props = this.props;
+      var width = _props.width;
+      var height = _props.height;
+      var size = _props.size;
 
       return _react2.default.createElement(
         'div',
@@ -19622,15 +19602,11 @@ var Game = function (_Component) {
           width: width,
           height: height,
           size: size,
-          squareColor: function squareColor() {
-            return _this3.squareColor.apply(_this3, arguments);
-          },
-          squareText: function squareText() {
-            return _this3.squareText.apply(_this3, arguments);
-          },
-          onSquareClick: function onSquareClick() {
-            return _this3.squareClicked.apply(_this3, arguments);
-          } })
+          squareColor: this.squareColor,
+          squareText: this.squareText,
+          onSquareClick: this.squareClicked,
+          onSquareRightClick: this.squareRightClicked
+        })
       );
     }
   }]);
@@ -19682,6 +19658,7 @@ var Grid = function (_Component) {
       var height = _props.height;
       var size = _props.size;
       var onSquareClick = _props.onSquareClick;
+      var onSquareRightClick = _props.onSquareRightClick;
       var squareColor = _props.squareColor;
       var squareText = _props.squareText;
 
@@ -19696,18 +19673,11 @@ var Grid = function (_Component) {
           }, function (b, y) {
             return _react2.default.createElement(
               _square2.default,
-              {
-                x: x * size,
-                y: y * size,
-                size: size,
+              { x: x, y: y, size: size,
                 color: squareColor(x, y),
                 border: '1px solid #ccc',
-                onClick: function onClick() {
-                  return onSquareClick(x, y);
-                },
-                onRightClick: function onRightClick() {
-                  return onSquareClick(x, y, true);
-                }
+                onClick: onSquareClick,
+                onRightClick: onSquareRightClick
               },
               squareText(x, y)
             );
@@ -19753,17 +19723,24 @@ var Square = function (_Component) {
   }
 
   _createClass(Square, [{
+    key: 'shouldComponentUpdate',
+    value: function shouldComponentUpdate(newProps) {
+      var _this2 = this;
+
+      return Square.propKeys.some(function (key) {
+        return _this2.props[key] !== newProps[key];
+      });
+    }
+  }, {
     key: 'render',
     value: function render() {
       var _props = this.props;
       var size = _props.size;
       var color = _props.color;
       var border = _props.border;
-      var _props$x = _props.x;
-      var x = _props$x === undefined ? 0 : _props$x;
-      var _props$y = _props.y;
-      var y = _props$y === undefined ? 0 : _props$y;
-      var onClick = _props.onClick;
+      var x = _props.x;
+      var y = _props.y;
+      var _onClick = _props.onClick;
       var onRightClick = _props.onRightClick;
       var children = _props.children;
 
@@ -19778,17 +19755,21 @@ var Square = function (_Component) {
         textAlign: 'center',
         whiteSpace: 'nowrap',
         overflow: 'hidden',
-        left: x,
-        top: y
+        left: x * size,
+        top: y * size
+      };
+
+      var rightClick = function rightClick(ev) {
+        ev.preventDefault();
+        onRightClick(x, y);
+        return false;
       };
 
       return _react2.default.createElement(
         'div',
-        { style: style, onClick: onClick, onContextMenu: function onContextMenu(ev) {
-            ev.preventDefault();
-            onRightClick();
-            return false;
-          } },
+        { style: style, onClick: function onClick() {
+            return _onClick(x, y);
+          }, onContextMenu: rightClick },
         children
       );
     }
@@ -19797,6 +19778,20 @@ var Square = function (_Component) {
   return Square;
 }(_react.Component);
 
+Square.propTypes = {
+  size: _react.PropTypes.number,
+  color: _react.PropTypes.string,
+  border: _react.PropTypes.string,
+  x: _react.PropTypes.number,
+  y: _react.PropTypes.number,
+  onClick: _react.PropTypes.func,
+  onRightClick: _react.PropTypes.func
+};
+Square.propKeys = Object.keys(Square.propTypes);
+Square.defaultProps = {
+  x: 0,
+  y: 0
+};
 exports.default = Square;
 
 },{"react":165}],169:[function(require,module,exports){

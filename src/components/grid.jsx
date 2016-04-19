@@ -3,7 +3,7 @@ import Square from './square.jsx';
 
 class Grid extends Component {
   render() {
-    var {width, height, size, onSquareClick, squareColor, squareText} = this.props;
+    var {width, height, size, onSquareClick, onSquareRightClick, squareColor, squareText} = this.props;
     return (
       <div>
         {Array.from({
@@ -11,14 +11,11 @@ class Grid extends Component {
         }, (a, x) => Array.from({
           length: height
         }, (b, y) => (
-          <Square
-            x={x * size}
-            y={y * size}
-            size={size}
+          <Square x={x} y={y} size={size}
             color={squareColor(x, y)}
             border='1px solid #ccc'
-            onClick={() => onSquareClick(x, y)}
-            onRightClick={() => onSquareClick(x, y, true)}
+            onClick={onSquareClick}
+            onRightClick={onSquareRightClick}
           >
             {squareText(x, y)}
           </Square>
