@@ -1,5 +1,6 @@
-import React, {Component} from 'react';
+import React, {Component, PropTypes} from 'react';
 import Grid from './grid.jsx';
+import {List} from 'immutable';
 
 const SAFE = 0;
 const MINE = 1;
@@ -7,39 +8,41 @@ const FLAG = 2;
 const FLAGMINE = 3;
 const TURNED = 4;
 
-const randomInt = max => Math.floor(Math.random() * max);
-
-const reset = ({width, height, mines}) => {
-  var grid = Array.from({length: width}, () => Array.from({length: height}));
-  var left = mines;
-  while (left) {
-    var x = randomInt(width), y = randomInt(height);
-    if (!grid[x][y]) {
-      grid[x][y] = MINE;
-      left--;
-    }
-  }
-  return grid;
-};
+const reset = ({width, height, mines}) => ({
+  grid: (new List(Array.from({length: width * height}, (val, index) => index < mines ? MINE : SAFE))).sortBy(() => Math.random()),
+  left: width * height - mines
+});
 
 class Game extends Component {
-  state = {
-    grid: reset(this.props)
+  static propTypes = {
+    width: PropTypes.number,
+    height: PropTypes.number,
+    size: PropTypes.number
   };
 
-  forSurroundingSquares = (x, y, func) => {
+  state = reset(this.props);
+
+  toIndex = (x, y) => x + y * this.props.height;
+  toXY = index => ({
+    x: index % this.props.height,
+    y: Math.floor(index / this.props.height)
+  });
+
+  forSurroundingSquares = (index, func) => {
     var {width, height} = this.props;
+    var {x, y} = this.toXY(index);
     for (var i = Math.max(x - 1, 0); i < Math.min(x + 2, width); ++i) {
       for (var j = Math.max(y - 1, 0); j < Math.min(y + 2, height); ++j) {
         if (i !== x || j !== y) {
-          func(i, j);
+          func(this.toIndex(i, j));
         }
       }
     }
   };
 
   squareColor = (x, y) => {
-    switch (this.state.grid[x][y]) {
+    var {grid} = this.state;
+    switch (grid.get(this.toIndex(x, y))) {
       case FLAG:
       case FLAGMINE:
         return 'blue';
@@ -52,12 +55,15 @@ class Game extends Component {
   };
 
   squareText = (x, y) => {
-    if (this.state.grid[x][y] === TURNED) {
-      var {grid} = this.state;
+    var {grid} = this.state;
+    var index = this.toIndex(x, y);
+    if (grid.get(index) === TURNED) {
       var num = 0;
-      this.forSurroundingSquares(x, y, (i, j) => {
-        if (grid[i][j] === MINE || grid[i][j] === FLAGMINE) {
-          num++;
+      this.forSurroundingSquares(index, i => {
+        switch (grid.get(i)) {
+          case MINE:
+          case FLAGMINE:
+            num++;
         }
       });
       if (num) {
@@ -65,57 +71,79 @@ class Game extends Component {
       }
     }
   };
-  checkSquare = (x, y) => {
-    var {grid} = this.state;
-    var num = 0;
-    this.forSurroundingSquares(x, y, (i, j) => {
-      if (grid[i][j] === MINE) {
-        num++;
-      } else if (grid[i][j] === FLAG) {
-        num--;
-      }
-    });
-    return num;
-  };
-
-
-  flipSquare = (x, y) => {
-    switch (this.state.grid[x][y]) {
-      case MINE:
-        console.log('Mine at ' + x + ', ' + y);
-        return {
-          grid: reset(this.props)
-        };
-      case FLAG:
-      case FLAGMINE:
-        break;
-      default:
-        this.state.grid[x][y] = TURNED;
-        if (!this.checkSquare(x, y)) {
-          this.forSurroundingSquares(x, y, (i, j) => (!this.state.grid[i][j] || this.state.grid[i][j] <= MINE) && this.flipSquare(i, j));
-        }
-        return this.state;
-    }
-  };
 
   squareClicked = (x, y) => {
-    this.setState(this.flipSquare(x, y));
+    var index = this.toIndex(x, y);
+    var {grid, left} = this.state;
+    try {
+      grid = grid.withMutations(grid => {
+        var checkSquare = index => {
+          var num = 0;
+          this.forSurroundingSquares(index, i => {
+            switch (grid.get(i)) {
+              case MINE:
+                num++;
+                break;
+              case FLAG:
+                num--;
+                break;
+            }
+          });
+          return num;
+        };
+
+        var flipSquare = index => {
+          switch (grid.get(index)) {
+            case MINE:
+              throw new Error('Mine!' + this.toXY(index));
+            case FLAG:
+            case FLAGMINE:
+              break;
+            case SAFE:
+              left--;
+              //fall through
+            default:
+              grid.set(index, TURNED);
+              if (!checkSquare(index)) {
+                this.forSurroundingSquares(index, i => grid.get(i) <= MINE && flipSquare(i));
+              }
+              break;
+          }
+        };
+        flipSquare(index);
+      });
+      this.setState({grid, left}, () => {
+        if (!this.state.left) {
+          alert('You won!');
+          this.setState(reset(this.props));
+        }
+      });
+    } catch (e) {
+      console.log(e);
+      this.setState(reset(this.props));
+    }
   };
 
   squareRightClicked = (x, y) => {
-    switch (this.state.grid[x][y]) {
+    var {grid} = this.state;
+    var index = this.toIndex(x, y);
+    switch (grid.get(index)) {
       case TURNED:
         return;
       case FLAG:
+        grid = grid.set(index, SAFE);
+        break;
       case FLAGMINE:
-        this.state.grid[x][y] = this.state.grid[x][y] - 2;
+        grid = grid.set(index, MINE);
         break;
       case MINE:
+        grid = grid.set(index, FLAGMINE);
+        break;
       default:
-        this.state.grid[x][y] = (this.state.grid[x][y] || 0) + 2;
+        grid = grid.set(index, FLAG);
         break;
     }
-    this.setState(this.state);
+    this.setState({grid});
   };
 
   render() {

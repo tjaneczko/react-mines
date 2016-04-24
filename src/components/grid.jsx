@@ -1,7 +1,16 @@
-import React, {Component} from 'react';
+import React, {Component, PropTypes} from 'react';
 import Square from './square.jsx';
 
 class Grid extends Component {
+  static propTypes = {
+    width: PropTypes.number,
+    height: PropTypes.number,
+    size: PropTypes.number,
+    onSquareClick: PropTypes.func,
+    onSquareRightClick: PropTypes.func,
+    squareColor: PropTypes.func,
+    squareText: PropTypes.func
+  };
   render() {
     var {width, height, size, onSquareClick, onSquareRightClick, squareColor, squareText} = this.props;
     return (
@@ -10,7 +19,7 @@ class Grid extends Component {
           length: width
         }, (a, x) => Array.from({
           length: height
-        }, (b, y) => (
+        }, (b, y) =>
           <Square x={x} y={y} size={size}
             color={squareColor(x, y)}
             border='1px solid #ccc'
@@ -19,7 +28,7 @@ class Grid extends Component {
           >
             {squareText(x, y)}
           </Square>
-        )))}
+        ))}
       </div>
     )
   }
